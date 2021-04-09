@@ -1,4 +1,4 @@
-module tailer
+module github.com/bronger/tailer
 
 go 1.16
 
