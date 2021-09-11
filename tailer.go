@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"io"
 	"os"
 	"path/filepath"
@@ -36,7 +37,7 @@ func main() {
 	if _, err = os.Stat(stopFilePath); err == nil {
 		tail(f)
 		goto exit
-	} else if !os.IsNotExist(err) {
+	} else if !errors.Is(err, os.ErrNotExist) {
 		check(err)
 	}
 	tail(f)
