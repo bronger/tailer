@@ -15,10 +15,8 @@ func check(e error) {
 	}
 }
 
-var buffer = make([]byte, 1024*1024)
-
 func tail(f *os.File) {
-	_, err := io.CopyBuffer(os.Stdout, f, buffer)
+	_, err := io.Copy(os.Stdout, f)
 	check(err)
 }
 
