@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/fsnotify/fsnotify"
 	tbr_errors "gitlab.com/bronger/tools/errors"
@@ -38,11 +39,13 @@ func main() {
 		tbr_errors.ExitWithExpectedError("Could not access stop file", 10, "error", err, "path", stopFilePath)
 	}
 	tail(f)
+	var latestSync time.Time
 	for {
 		select {
 		case event := <-tailWatcher.Events:
-			if event.Op&fsnotify.Write == fsnotify.Write {
+			if true || time.Since(latestSync) > time.Second && event.Op&fsnotify.Write == fsnotify.Write {
 				tail(f)
+				latestSync = time.Now()
 			}
 		case event := <-stopWatcher.Events:
 			if event.Op&fsnotify.Create == fsnotify.Create && event.Name == stopFilePath {
