@@ -7,38 +7,35 @@ import (
 	"path/filepath"
 
 	"github.com/fsnotify/fsnotify"
+	tbr_errors "gitlab.com/bronger/tools/errors"
+	"go4.org/must"
 )
-
-func check(e error) {
-	if e != nil {
-		panic(e)
-	}
-}
 
 func tail(f *os.File) {
 	_, err := io.Copy(os.Stdout, f)
-	check(err)
+	tbr_errors.ExitOnExpectedError(err, "Could not tail file", 9)
 }
 
 func main() {
 	filePath, err := filepath.Abs(os.Args[1])
-	check(err)
+	tbr_errors.ExitOnExpectedError(err, "File not found", 3, "path", filePath)
 	tailWatcher, err := fsnotify.NewWatcher()
-	check(err)
+	tbr_errors.ExitOnExpectedError(err, "Could not set create notifier for original file", 4)
 	err = tailWatcher.Add(filePath)
-	check(err)
+	tbr_errors.ExitOnExpectedError(err, "Could not set set up notifier for original file", 5)
 	stopWatcher, err := fsnotify.NewWatcher()
-	check(err)
+	tbr_errors.ExitOnExpectedError(err, "Could not set create notifier for stop file", 6)
 	stopFilePath := filepath.Join(filePath + ".stop")
 	err = stopWatcher.Add(filepath.Dir(stopFilePath))
-	check(err)
+	tbr_errors.ExitOnExpectedError(err, "Could not set set up notifier for stop file", 7)
 	f, err := os.Open(filePath)
-	check(err)
+	tbr_errors.ExitOnExpectedError(err, "Could not open original file", 8, "path", filePath)
+	defer must.Close(f)
 	if _, err = os.Stat(stopFilePath); err == nil {
 		tail(f)
-		goto exit
+		return
 	} else if !errors.Is(err, os.ErrNotExist) {
-		check(err)
+		tbr_errors.ExitWithExpectedError("Could not access stop file", 10, "error", err, "path", stopFilePath)
 	}
 	tail(f)
 	for {
@@ -50,15 +47,12 @@ func main() {
 		case event := <-stopWatcher.Events:
 			if event.Op&fsnotify.Create == fsnotify.Create && event.Name == stopFilePath {
 				tail(f)
-				goto exit
+				return
 			}
 		case err := <-tailWatcher.Errors:
-			check(err)
+			tbr_errors.ExitOnExpectedError(err, "Error with watching original file", 11)
 		case err := <-stopWatcher.Errors:
-			check(err)
+			tbr_errors.ExitOnExpectedError(err, "Error with watching stop file", 12)
 		}
 	}
-exit:
-	err = f.Close()
-	check(err)
 }
