@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"errors"
 	"io"
 	"log/slog"
@@ -14,17 +15,21 @@ import (
 	"go4.org/must"
 )
 
-func init() {
-	tbr_logging.Init(os.Stderr, slog.LevelDebug)
-}
-
 func tail(logger tbr_logging.Logger, f *os.File) {
 	written, err := io.Copy(os.Stdout, f)
 	tbr_errors.ExitOnExpectedError(err, "Could not tail file", 9)
 	logger.Debug("Synchronised", "bytes", written)
 }
 
+const logPath = "/var/log/tailer.log"
+
 func main() {
+	file, err := os.OpenFile(logPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o777)
+	tbr_errors.ExitOnExpectedError(err, "Could not open log file", 13, "path", logPath)
+	defer must.Close(file)
+	logWriter := bufio.NewWriter(file)
+	defer logWriter.Flush()
+	tbr_logging.Init(logWriter, slog.LevelDebug)
 	logger := slog.Default()
 	filePath, err := filepath.Abs(os.Args[1])
 	tbr_errors.ExitOnExpectedError(err, "File not found", 3, "path", filePath)
