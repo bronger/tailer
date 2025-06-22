@@ -28,7 +28,7 @@ func main() {
 	tbr_errors.ExitOnExpectedError(err, "Could not open log file", 13, "path", logPath)
 	defer must.Close(file)
 	logWriter := bufio.NewWriter(file)
-	defer logWriter.Flush()
+	defer must.Do(logWriter.Flush)
 	tbr_logging.Init(logWriter, slog.LevelDebug)
 	logger := slog.Default()
 	filePath, err := filepath.Abs(os.Args[1])
